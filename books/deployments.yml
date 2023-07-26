@@ -1,0 +1,261 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kaizoku
+  namespace: default
+  labels:
+    app.kubernetes.io/name: kaizoku
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: 
+      app.kubernetes.io/name: kaizoku
+  template:
+    metadata:
+        labels:
+          app.kubernetes.io/name: kaizoku
+    spec:
+      initContainers:
+        - name: check-db-ready
+          image: postgres:alpine
+          command: ["sh", "-c"]
+          args: ["until pg_isready -h postgres -p 5432; do echo waiting for database; sleep 2; done;"]
+      containers:
+        - image: ghcr.io/oae/kaizoku:v1.6.1
+          name: kaizoku
+          env:
+            - name: PUID
+              value: "3000"
+            - name: PGID
+              value: "3000"
+            - name: TZ
+              value: Europe/Vienna
+            - name: DATABASE_URL
+              value: postgresql://kaizoku:kaizoku@postgres:5432/kaizoku
+            - name: KAIZOKU_PORT
+              value: "3000"
+            - name: REDIS_HOST
+              value: redis
+            - name: REDIS_PORT
+              value: "6379"
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /config
+              name: config
+            - mountPath: /data
+              name: data
+            - mountPath: /logs
+              name: logs
+            - mountPath: /storage
+              name: media
+      restartPolicy: Always
+      volumes:
+        - name: base
+          nfs:
+            server: 10.0.3.3
+            path: "/mnt/storage/service/books/kaizoku"
+        - name: config
+          nfs:
+            server: 10.0.3.3
+            path: "/mnt/storage/service/books/kaizoku/config"
+        - name: data
+          nfs:
+            server: 10.0.3.3
+            path: "/mnt/storage/service/books/kaizoku/data"
+        - name: logs
+          nfs:
+            server: 10.0.3.3
+            path: "/mnt/storage/service/books/kaizoku/logs"
+        - name: media
+          nfs:
+            server: 10.0.3.3
+            path: "/mnt/storage/media"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: default
+  labels:
+    app.kubernetes.io/name: postgres
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: 
+      app.kubernetes.io/name: postgres
+  template:
+    metadata:
+        labels:
+          app.kubernetes.io/name: postgres
+    spec:
+      securityContext:
+        runAsUser: 3000
+        runAsGroup: 3000
+        fsGroup: 3000
+      containers:
+        - name: postgres
+          image: postgres:alpine3.18
+          env:
+            - name: POSTGRES_USER
+              value: "kaizoku"
+            - name: POSTGRES_DB
+              value: "kaizoku"
+            - name: POSTGRES_PASSWORD
+              value: "kaizoku"
+          ports:
+            - name: http
+              containerPort: 5432
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: db
+      restartPolicy: Always
+      volumes:
+        - name: db
+          nfs:
+            server: 10.0.3.3
+            path: "/mnt/storage/service/books/postgres"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: default
+  labels:
+    app.kubernetes.io/name: redis
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: 
+      app.kubernetes.io/name: redis
+  template:
+    metadata:
+        labels:
+          app.kubernetes.io/name: redis
+    spec:
+      securityContext:
+        runAsUser: 3000
+        runAsGroup: 3000
+        fsGroup: 3000
+      containers:
+        - image: redis:7-alpine
+          name: redis
+          ports:
+            - name: redis
+              containerPort: 6379
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /data
+              name: redis
+      restartPolicy: Always
+      volumes:
+        - name: redis
+          nfs:
+            server: 10.0.3.3
+            path: "/mnt/storage/service/books/redis"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kavita
+  namespace: default
+  labels:
+    app.kubernetes.io/name: kavita
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: 
+      app.kubernetes.io/name: kavita
+  template:
+    metadata:
+        labels:
+          app.kubernetes.io/name: kavita
+    spec:
+      securityContext:
+        runAsUser: 3000
+        runAsGroup: 3000
+      containers:
+        - image: kizaing/kavita:0.7.6
+          name: kavita
+          ports:
+            - name: http
+              containerPort: 5000
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /kavita/config
+              name: config
+            - mountPath: /storage
+              name: media
+      restartPolicy: Always
+      volumes:
+        - name: config
+          nfs:
+            server: 10.0.3.3
+            path: "/mnt/storage/service/books/kavita"
+        - name: media
+          nfs:
+            server: 10.0.3.3
+            path: "/mnt/storage/media"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: calibre
+  namespace: default
+  labels:
+    app.kubernetes.io/name: calibre
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: 
+      app.kubernetes.io/name: calibre
+  template:
+    metadata:
+        labels:
+          app.kubernetes.io/name: calibre
+    spec:
+      containers:
+        - image: lscr.io/linuxserver/calibre:6.23.0
+          name: calibre
+          env:
+            - name: PUID
+              value: "3000"
+            - name: PGID
+              value: "3000"
+            - name: TZ
+              value: Europe/Vienna
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+            - name: api
+              containerPort: 8081
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /config
+              name: config
+            - mountPath: /storage
+              name: media
+      restartPolicy: Always
+      volumes:
+        - name: config
+          nfs:
+            server: 10.0.3.3
+            path: "/mnt/storage/service/books/calibre"
+        - name: media
+          nfs:
+            server: 10.0.3.3
+            path: "/mnt/storage/media"

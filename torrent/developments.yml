@@ -1,0 +1,302 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: readarr
+  namespace: default
+  labels:
+    app.kubernetes.io/name: readarr
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: 
+      app.kubernetes.io/name: readarr
+  template:
+    metadata:
+        labels:
+          app.kubernetes.io/name: readarr
+    spec:
+      containers:
+        - image: lscr.io/linuxserver/readarr:0.3.0-develop
+          name: readarr
+          env:
+            - name: PUID
+              value: "3000"
+            - name: PGID
+              value: "3000"
+            - name: TZ
+              value: Europe/Vienna
+          ports:
+            - name: http
+              containerPort: 8787
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /config
+              name: config
+            - mountPath: /storage
+              name: media
+      restartPolicy: Always
+      volumes:
+        - name: config
+          nfs:
+            server: 10.0.3.3
+            path: "/mnt/storage/service/torrent/readarr"
+        - name: media
+          nfs:
+            server: 10.0.3.3
+            path: "/mnt/storage/media"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sonarr-anime
+  namespace: default
+  labels:
+    app.kubernetes.io/name: sonarr-anime
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: 
+      app.kubernetes.io/name: sonarr-anime
+  template:
+    metadata:
+        labels:
+          app.kubernetes.io/name: sonarr-anime
+    spec:
+      containers:
+        - image: lscr.io/linuxserver/sonarr:3.0.10
+          name: sonarr-anime
+          env:
+            - name: PUID
+              value: "3000"
+            - name: PGID
+              value: "3000"
+            - name: TZ
+              value: Europe/Vienna
+          ports:
+            - name: http
+              containerPort: 8989
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /config
+              name: config
+            - mountPath: /storage
+              name: media
+      restartPolicy: Always
+      volumes:
+        - name: config
+          nfs:
+            server: 10.0.3.3
+            path: "/mnt/storage/service/torrent/sonarr/anime"
+        - name: media
+          nfs:
+            server: 10.0.3.3
+            path: "/mnt/storage/media"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sonarr-series
+  namespace: default
+  labels:
+    app.kubernetes.io/name: sonarr-series
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: 
+      app.kubernetes.io/name: sonarr-series
+  template:
+    metadata:
+        labels:
+          app.kubernetes.io/name: sonarr-series
+    spec:
+      containers:
+        - image: lscr.io/linuxserver/sonarr:3.0.10
+          name: sonarr-series
+          env:
+            - name: PUID
+              value: "3000"
+            - name: PGID
+              value: "3000"
+            - name: TZ
+              value: Europe/Vienna
+          ports:
+            - name: http
+              containerPort: 8989
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /config
+              name: config
+            - mountPath: /storage
+              name: media
+      restartPolicy: Always
+      volumes:
+        - name: config
+          nfs:
+            server: 10.0.3.3
+            path: "/mnt/storage/service/torrent/sonarr/series"
+        - name: media
+          nfs:
+            server: 10.0.3.3
+            path: "/mnt/storage/media"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: radarr
+  namespace: default
+  labels:
+    app.kubernetes.io/name: radarr
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: 
+      app.kubernetes.io/name: radarr
+  template:
+    metadata:
+        labels:
+          app.kubernetes.io/name: radarr
+    spec:
+      containers:
+        - image: lscr.io/linuxserver/radarr:4.6.4
+          name: radarr
+          env:
+            - name: PUID
+              value: "3000"
+            - name: PGID
+              value: "3000"
+            - name: TZ
+              value: Europe/Vienna
+          ports:
+            - name: http
+              containerPort: 7878
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /config
+              name: config
+            - mountPath: /storage
+              name: media
+      restartPolicy: Always
+      volumes:
+        - name: config
+          nfs:
+            server: 10.0.3.3
+            path: "/mnt/storage/service/torrent/radarr"
+        - name: media
+          nfs:
+            server: 10.0.3.3
+            path: "/mnt/storage/media"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prowlarr
+  namespace: default
+  labels:
+    app.kubernetes.io/name: prowlarr
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: 
+      app.kubernetes.io/name: prowlarr
+  template:
+    metadata:
+        labels:
+          app.kubernetes.io/name: prowlarr
+    spec:
+      containers:
+        - image: lscr.io/linuxserver/prowlarr:1.7.4
+          name: prowlarr
+          env:
+            - name: PUID
+              value: "3000"
+            - name: PGID
+              value: "3000"
+            - name: TZ
+              value: Europe/Vienna
+          ports:
+            - name: http
+              containerPort: 9696
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /config
+              name: config
+      restartPolicy: Always
+      volumes:
+        - name: config
+          nfs:
+            server: 10.0.3.3
+            path: "/mnt/storage/service/torrent/prowlarr"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qbittorrent
+  namespace: default
+  labels:
+    app.kubernetes.io/name: qbittorrent
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: 
+      app.kubernetes.io/name: qbittorrent
+  template:
+    metadata:
+        labels:
+          app.kubernetes.io/name: qbittorrent
+    spec:
+      containers:
+        - image: dyonr/qbittorrentvpn
+          name: qbittorrent
+          env:
+            - name: PUID
+              value: "3000"
+            - name: PGID
+              value: "3000"
+            - name: VPN_ENABLED
+              value: "yes"
+            - name: VPN_TYPE
+              value: wireguard
+            - name: LAN_NETWORK
+              value: "10.0.3.0/24"
+            - name: NAME_SERVERS
+              value: "10.0.3.200"
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+            - name: torrent-tcp
+              containerPort: 8999
+              protocol: TCP
+            - name: torrent-udp
+              containerPort: 8999
+              protocol: UDP
+          volumeMounts:
+            - mountPath: /config
+              name: config
+            - mountPath: /storage
+              name: media
+          securityContext:
+            capabilities:
+              add: ["NET_ADMIN"]
+      restartPolicy: Always
+      volumes:
+        - name: config
+          nfs:
+            server: 10.0.3.3
+            path: "/mnt/storage/service/torrent/qbittorrent"
+        - name: media
+          nfs:
+            server: 10.0.3.3
+            path: "/mnt/storage/media"
